@@ -1,0 +1,203 @@
+
+The data for this assignment can be downloaded from the course web site:
+
+Dataset: Activity monitoring data [52K]. The variables included in this dataset are:  
+
+- steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)  
+
+- date: The date on which the measurement was taken in YYYY-MM-DD format  
+
+- interval: Identifier for the 5-minute interval in which measurement was taken  
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.  See Appendix Data Extract in the annex for listings of the first and last ten rows of data.   
+
+##Loading and preprocessing the data
+
+1. Load the data (i.e. read.csv())
+```{r}  
+# Read data file from the workding directory
+activity <- read.csv("activity.csv")
+```
+
+2. Process/transform the data (if necessary) into a format suitable for your analysis  
+```{r}
+# Convert factor date as date data type, as.Date(dates, "%y/%m/%d")
+activity$date <- as.Date(activity$date, "%Y-%m-%d")
+```
+##What is mean total number of steps taken per day?
+
+For this part of the assignment, you can ignore the missing values in the dataset.
+
+1. Calculate the total number of steps taken per day
+```{r}
+# sum the total steps per day
+totalsteps <- aggregate(steps ~ date, activity, sum )
+# label the column for clarity
+names(totalsteps)[names(totalsteps)=="steps"] <- "totalsteps"
+# print the output to the console
+totalsteps
+```
+2. If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
+```{r}
+# sum the total steps per day
+x <- aggregate(steps ~ date, activity, sum)
+# plot the histogram and label
+plot(x$steps ~ x$date, type="h", lwd = 7, ylab="Frequency (steps)", xlab="Activity Days")
+```
+
+3. Calculate and report the mean and median of the total number of steps taken per day
+```{r}
+# take the mean of the individual days
+tendency <- aggregate(steps ~ date, activity, mean, na.rm=TRUE)
+# take the median of the individual days
+medianTendency  <- aggregate(steps ~ date, activity, median, na.rm=TRUE)
+# combind in one table
+tendency <- cbind(tendency, medianTendency$steps)
+# rename the mean column lablefor clarity
+names(tendency)[names(tendency)=="steps"] <- "mean"
+# rename median column label for clarity
+names(tendency)[names(tendency)=="medianTendency$steps"] <- "median"
+# print the table to the console
+tendency 
+
+# total daily mean and median averages respectively
+mean(activity$steps, na.rm=TRUE)
+median(activity$steps, na.rm=TRUE)
+```
+
+##What is the average daily activity pattern?
+
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)  
+```{r}
+# calculate mean steps by interval 
+x <- aggregate(steps ~ interval, activity, mean, na.rm=TRUE)
+# plot the line chart and label
+plot(x, type="l", xlab="5-min Interval", ylab="Average Steps Taken")
+```  
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?  
+```{r}
+# cross check the graph's largest interval
+x$interval[x$steps==max(x$steps)]
+```
+
+##Imputing missing values
+
+Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)  
+```{r}
+# Sum the NA values 
+sum(is.na(activity$steps))
+```  
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+The preponderance of missing data are complete days, impute no activity into the data set for missing values.  That is, impute a zero for NA values in the data set. 
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r}
+# create the new table to impute values for NA
+imputed <- activity
+# substitute NA with zero
+imputed$steps[is.na(imputed$steps)] <- 0
+# cross check, no NA's
+sum(is.na(imputed$steps))
+# cross check again, total entries add up to data set
+sum(!is.na(imputed$steps))
+```   
+
+4. 
+   a. Make a histogram of the total number of steps taken each day Calculate and report the mean and median total number of steps taken per day. 
+```{r}
+# calculate the frequencies by day
+imputedsum <- aggregate(steps ~ date, imputed, sum)
+# plot the historgram and label
+plot(imputedsum$steps ~ imputedsum$date, type="h", lwd = 7, ylab="Imputed Frequency (steps)", xlab="Imputed Activity Days")  
+```
+  
+   b. Calculate and report the mean and median total number of steps taken per day.
+```{r}
+# calculate the mean by day with imputed data set
+tendency <- aggregate(steps ~ date, imputed, mean)
+# calculate the median by day with the imputed data set
+medianTendency  <- aggregate(steps ~ date, imputed, median)
+# combine into on table
+tendency <- cbind(tendency, medianTendency$steps)
+# label the mean column for clarity
+names(tendency)[names(tendency)=="steps"] <- "mean"
+# label the median column for clarity
+names(tendency)[names(tendency)=="medianTendency$steps"] <- "median"
+# print out put to console
+tendency 
+
+
+# total daily mean and median averages respectively
+
+mean(imputed$steps)
+median(imputed$steps)
+```
+
+   
+   c. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+   
+   
+# Analysis    
+Yes, increasing the population biased the mean by skewing the mean towards zero from `37.3826` to `32.4797`.  The median remained robust throughout both calculations. The number of aggregrated day rows increased from 53 to 61, and the frequency of zeros increased with the introduction of zeros for NA's on those days. Without even introducing more zero values for the NA values, the number of zeros are approximately 75%; therefore, the median will remianed zero.   
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+Yes.  Activity starts earlier and reamains higher throughout the day then subsiding towards the end.
+
+1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.  
+```{r}
+#create a vector of weekdays
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+#Use `%in%` and `weekdays` to create a logical vector
+#Convert to `factor` and specify the `levels/labels`
+imputed$partofweek <-  factor((weekdays(imputed$date) %in% weekdays1)+1L,
+      levels=1:2, labels=c('weekend', 'weekday'))
+#activity$partofweek
+ aggregate(steps ~ partofweek, imputed, sum, na.rm=TRUE)
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+```{r}
+# Make a two panel plot
+par(mfrow=c(2,1))
+# Gather the weekday data first
+weekday <- subset(imputed, partofweek=="weekday")
+# calculate the weekday mean fisrt
+wd <- aggregate(steps ~ interval, weekday, mean, na.rm=TRUE)
+# plot the average interval graph for weekdays
+plot(wd, type="l", xlab="Weekday 5-min Interval", ylab="Average Steps")
+
+# Gather the weekday data first
+weekend <- subset(imputed, partofweek=="weekend")
+# calculate the weekday mean fisrt
+we <- aggregate(steps ~ interval, weekend, mean, na.rm=TRUE)
+# plot the average interval graph for weekends
+plot(we, type="l", xlab="Weekend 5-min Interval", ylab="Average Steps")
+
+# Great assignment!
+```
+
+##References  
+[Fitbit](http://www.fitbit.com/). (2015). Retrieved May 14, 2015, from http://www.fitbit.com.
+
+[Nike](http://www.nike.com/us/en_us/c/nikeplus-fuel). (2015). Retrieved May 14, 2015, from http://www.nike.com/us/en_us/c/nikeplus-fuel.
+
+[Jawbone](https://jawbone.com/up). (2015). Retrieved May 14, 2015, from https://jawbone.com/up.
+
+##Appendix Data Extract
+Show the first 10 rows of data  
+```{r}
+head(activity, 10)  
+```
+Show the last 10 rows of data  
+```{r}
+tail(activity, 10)  
+```
+
